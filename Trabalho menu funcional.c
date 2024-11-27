@@ -1,18 +1,18 @@
-#include <stdio.h>      
-#include <stdlib.h>     
-#include <string.h>     
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 #include <locale.h>
 
-// Definição da estrutura Cliente
+// DefiniÃ§Ã£o da estrutura Cliente
 struct Cliente {
     char nome[50];
     char telefone[20];
-    char plano[20]; // Exemplo: mensal, semestral ou anual
-    char status;    // 'A' para ativo, 'I' para inativo
+    char plano[20];
+    char status; // 'A' para ativo, 'I' para inativo
 };
 
-// Prototipação das funções
+// PrototipaÃ§Ã£o das funÃ§Ãµes
 int tamanho(FILE *arq);
 void cadastrar(FILE *arq);
 void consultar(FILE *arq);
@@ -20,11 +20,10 @@ void geraRelatorio(FILE *arq);
 void excluir(FILE *arq);
 
 int main() {
-	setlocale(LC_ALL, "Portuguese");
+    setlocale(LC_ALL, "Portuguese");
     int op;
     FILE *arq;
 
-    // Abrir o arquivo binário, criar caso não exista
     if ((arq = fopen("clientes.dat", "rb+")) == NULL) {
         if ((arq = fopen("clientes.dat", "wb+")) == NULL) {
             printf("Erro ao abrir ou criar o arquivo!\n");
@@ -33,16 +32,16 @@ int main() {
     }
 
     do {
-        system("CLS");
+        system("CLS"); // Para Windows; use system("clear") em Linux/macOS
         printf("\n===== Gerenciador de Clientes de Academia =====\n");
         printf("1. Cadastrar Cliente\n");
         printf("2. Consultar Cliente\n");
-        printf("3. Gerar Relatório\n");
+        printf("3. Gerar RelatÃ³rio\n");
         printf("4. Excluir Cliente\n");
         printf("5. Sair\n");
         printf("===============================================\n");
-        printf("Clientes cadastrados: %d\n", tamanho(arq));
-        printf("Escolha uma opção: ");
+        printf("Clientes ativos cadastrados: %d\n", tamanho(arq));
+        printf("Escolha uma opÃ§Ã£o: ");
         scanf("%d", &op);
 
         switch (op) {
@@ -63,7 +62,8 @@ int main() {
                 printf("Encerrando o programa...\n");
                 break;
             default:
-                printf("Opção inválida! Tente novamente.\n");
+                printf("OpÃ§Ã£o invÃ¡lida! Tente novamente.\n");
+                system("pause");
                 break;
         }
     } while (op != 5);
@@ -71,13 +71,21 @@ int main() {
     return 0;
 }
 
-// Retorna o número de registros no arquivo
+// FunÃ§Ã£o corrigida para contar apenas clientes ativos
 int tamanho(FILE *arq) {
-    fseek(arq, 0, SEEK_END);
-    return ftell(arq) / sizeof(struct Cliente);
+    struct Cliente cliente;
+    int count = 0;
+
+    rewind(arq); // Volta ao inÃ­cio do arquivo
+    while (fread(&cliente, sizeof(struct Cliente), 1, arq)) {
+        if (cliente.status == 'A') {
+            count++;
+        }
+    }
+
+    return count;
 }
 
-// Função para cadastrar um cliente
 void cadastrar(FILE *arq) {
     struct Cliente cliente;
     char confirma;
@@ -90,7 +98,7 @@ void cadastrar(FILE *arq) {
     gets(cliente.telefone);
     printf("Plano (mensal/semestral/anual): ");
     gets(cliente.plano);
-    cliente.status = 'A'; // Cliente começa como ativo
+    cliente.status = 'A';
 
     printf("\nConfirmar cadastro? (s/n): ");
     scanf(" %c", &confirma);
@@ -105,13 +113,12 @@ void cadastrar(FILE *arq) {
     system("pause");
 }
 
-// Função para consultar um cliente por código
 void consultar(FILE *arq) {
     struct Cliente cliente;
     int id;
 
-    printf("\nConsulta por Código:\n");
-    printf("Digite o código do cliente: ");
+    printf("\nConsulta por CÃ³digo:\n");
+    printf("Digite o cÃ³digo do cliente: ");
     scanf("%d", &id);
 
     if (id > 0 && id <= tamanho(arq)) {
@@ -128,49 +135,45 @@ void consultar(FILE *arq) {
             printf("\nCliente inativo ou inexistente.\n");
         }
     } else {
-        printf("\nCódigo inválido.\n");
+        printf("\nCÃ³digo invÃ¡lido.\n");
     }
     system("pause");
 }
 
-// Função para gerar um relatório
 void geraRelatorio(FILE *arq) {
     FILE *arqtxt = fopen("relatorio_clientes.txt", "w");
     struct Cliente cliente;
+    int i;
 
     if (!arqtxt) {
-        printf("Erro ao criar arquivo de relatório!\n");
+        printf("Erro ao criar arquivo de relatÃ³rio!\n");
         return;
     }
 
-    fprintf(arqtxt, "Relatório de Clientes Ativos\n");
+    fprintf(arqtxt, "RelatÃ³rio de Clientes Ativos\n");
     fprintf(arqtxt, "-------------------------------------------\n");
     fprintf(arqtxt, "Nome                Telefone         Plano\n");
     fprintf(arqtxt, "-------------------------------------------\n");
 
-    int i; // Declaração da variável fora do loop
-    for (i = 0; i < tamanho(arq); i++) { // Usando a variável declarada anteriormente
-        fseek(arq, i * sizeof(struct Cliente), SEEK_SET);
-        fread(&cliente, sizeof(struct Cliente), 1, arq);
-
+    rewind(arq); // Volta ao inÃ­cio do arquivo
+    while (fread(&cliente, sizeof(struct Cliente), 1, arq)) {
         if (cliente.status == 'A') {
             fprintf(arqtxt, "%-20s %-15s %-10s\n", cliente.nome, cliente.telefone, cliente.plano);
         }
     }
 
     fclose(arqtxt);
-    printf("Relatório gerado com sucesso: relatorio_clientes.txt\n");
+    printf("RelatÃ³rio gerado com sucesso: relatorio_clientes.txt\n");
     system("pause");
 }
 
-// Função para excluir um cliente (marcar como inativo)
 void excluir(FILE *arq) {
     struct Cliente cliente;
     int id;
     char confirma;
 
     printf("\nExcluir Cliente:\n");
-    printf("Digite o código do cliente: ");
+    printf("Digite o cÃ³digo do cliente: ");
     scanf("%d", &id);
 
     if (id > 0 && id <= tamanho(arq)) {
@@ -182,7 +185,7 @@ void excluir(FILE *arq) {
             printf("Nome: %s\n", cliente.nome);
             printf("Telefone: %s\n", cliente.telefone);
             printf("Plano: %s\n", cliente.plano);
-            printf("\nConfirmar exclusão? (s/n): ");
+            printf("\nConfirmar exclusÃ£o? (s/n): ");
             getchar();
             scanf(" %c", &confirma);
 
@@ -190,16 +193,15 @@ void excluir(FILE *arq) {
                 cliente.status = 'I';
                 fseek(arq, (id - 1) * sizeof(struct Cliente), SEEK_SET);
                 fwrite(&cliente, sizeof(struct Cliente), 1, arq);
-                printf("\nCliente excluído com sucesso!\n");
+                printf("\nCliente excluÃ­do com sucesso!\n");
             } else {
-                printf("\nExclusão cancelada.\n");
+                printf("\nExclusÃ£o cancelada.\n");
             }
         } else {
-            printf("\nCliente já está inativo.\n");
+            printf("\nCliente jÃ¡ estÃ¡ inativo.\n");
         }
     } else {
-        printf("\nCódigo inválido.\n");
+        printf("\nCÃ³digo invÃ¡lido.\n");
     }
     system("pause");
 }
-
